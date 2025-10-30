@@ -1,0 +1,98 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Navbar from "../components/Navbar.astro";
+---
+
+<Layout title="J&L Arrendamientos">
+  <Fragment slot="navbar">
+    <Navbar />
+  </Fragment>
+
+  <section class="hero">
+    <div class="overlay"></div>
+  </section>
+
+  <!-- TRANSICIÓN SVG -->
+  <svg class="svg-transition" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320">
+    <path fill="#008000" fill-opacity="1" d="M0,256L7.1,240C14.1,224,28,192,42,197.3C56.5,203,71,245,85,240C98.8,235,113,181,127,154.7C141.2,128,155,128,169,112C183.5,96,198,64,212,64C225.9,64,240,96,254,117.3C268.2,139,282,149,296,149.3C310.6,149,325,139,339,117.3C352.9,96,367,64,381,48C395.3,32,409,32,424,42.7C437.6,53,452,75,466,117.3C480,160,494,224,508,213.3C522.4,203,536,117,551,74.7C564.7,32,579,32,593,32C607.1,32,621,32,635,64C649.4,96,664,160,678,160C691.8,160,706,96,720,58.7C734.1,21,748,11,762,32C776.5,53,791,107,805,122.7C818.8,139,833,117,847,128C861.2,139,875,181,889,192C903.5,203,918,181,932,186.7C945.9,192,960,224,974,202.7C988.2,181,1002,107,1016,112C1030.6,117,1045,203,1059,197.3C1072.9,192,1087,96,1101,53.3C1115.3,11,1129,21,1144,64C1157.6,107,1172,181,1186,224C1200,267,1214,277,1228,240C1242.4,203,1256,117,1271,74.7C1284.7,32,1299,32,1313,64C1327.1,96,1341,160,1355,186.7C1369.4,213,1384,203,1398,181.3C1411.8,160,1426,128,1433,112L1440,96L1440,0L0,0Z"></path>
+  </svg>
+
+  <!-- CONTENIDO PRINCIPAL -->
+  <section class="content">
+    <h1>Bienvenidos A J&L Arrendamientos</h1>
+    <p class="subtitle">Tu próximo hogar está aquí, con J&L</p>
+    
+    <!-- CONTAINERS CON ANIMACIÓN -->
+    <div class="info-containers">
+      <div class="info-card">
+        <div class="card-icon">🏠</div>
+        <h3>¿Que Somos?</h3>
+        <p>Somos una plataforma digital diseñada para optimizar el proceso de arrendamiento en Medellín.
+           Brindamos herramientas para que tanto propietarios como arrendatarios gestionen de manera independiente y segura todo lo relacionado con sus inmuebles, en un entorno confiable, accesible y transparente..</p>
+      </div>
+      
+      <div class="info-card">
+        <div class="card-icon">⭐</div>
+        <h3>¿Que Hacemos?</h3>
+        <p>En J&L, conectamos de manera eficiente a arrendatarios y propietarios, optimizando cada etapa del proceso de arrendamiento en Medellín.
+          Nuestro compromiso es ofrecer una experiencia inmobiliaria accesible, confiable y transparente, brindando seguridad y respaldo tanto a quienes buscan arrendar como a quienes desean arrendar sus inmuebles.</p>
+      </div>
+    </div>
+
+    <div class="info-containers">
+      <div class="info-card info-card-large">
+        <div class="card-icon">🔑</div>
+        <h3>Empieza Con Nosotros</h3>
+        <p>En nuestra plataforma encontrarás diferentes roles diseñados para ofrecerte una experiencia personalizada. Te invitamos a registrarte según tu perfil y, una vez inicies sesión, accederás a todas las herramientas y beneficios que tenemos para ti.</p>
+        <h3>🏠 Rol Propietario</h3>
+          <p>Accede a una página informativa donde conocerás cómo podemos ayudarte a publicar y gestionar tus inmuebles.
+             Ponemos a tu disposición diversos canales de comunicación con nuestro equipo de soporte, para que puedas agendar una cita y sumar tu propiedad a nuestra plataforma de manera rápida y segura.</p>
+        <h3>🏠 Rol Arrendatario</h3>
+          <p>Descubre todos los inmuebles disponibles y utiliza nuestros filtros para encontrar el espacio ideal para ti.
+               Podrás ajustar tu búsqueda por precio, ubicación, características y más, facilitando una elección que se adapte a tus necesidades.</p>
+          <p>Además, cada rol cuenta con un apartado informativo sobre el proceso de contratación directa con nosotros, garantizando transparencia, seguridad y confianza en cada paso del arrendamiento..</p>
+      </div>
+    </div>
+
+    <div style="height:90px;"></div>
+  </section>
+
+</Layout>
+
+<script>
+  // Script mejorado para agregar clase al navbar cuando haces scroll
+  function handleScroll() {
+    const navbar = document.querySelector('.navbar');
+    if (navbar) {
+      if (window.scrollY > 1100) {
+        navbar.classList.add('scrolled');
+      } else {
+        navbar.classList.remove('scrolled');
+      }
+    }
+  }
+
+  // Ejecutar al cargar la página
+  document.addEventListener('DOMContentLoaded', handleScroll);
+  
+  // Ejecutar al hacer scroll
+  window.addEventListener('scroll', handleScroll);
+
+  // Animación de las tarjetas con Intersection Observer
+  const observerOptions = {
+    threshold: 0.2,
+    rootMargin: '0px 0px -100px 0px'
+  };
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, observerOptions);
+
+  document.querySelectorAll('.info-card').forEach((card) => {
+    observer.observe(card);
+  });
+</script>

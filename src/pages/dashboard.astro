@@ -1,0 +1,100 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Dashboard - J&L Arrendamientos">
+  <div class="dashboard-container">
+    <div class="welcome-card">
+      <h1>¡Bienvenido a J&L Arrendamientos!</h1>
+      <p>Has iniciado sesión correctamente.</p>
+      <div class="user-info" id="userInfo">
+        <p>Cargando información...</p>
+      </div>
+      <button id="logoutBtn" class="btn-logout">Cerrar Sesión</button>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  import { supabase } from '../lib/supabaseClient'
+
+  // Verificar si hay sesión
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    if (!session) {
+      window.location.href = '/login'
+    } else {
+      const userInfo = document.getElementById('userInfo')
+      if (userInfo) {
+        userInfo.innerHTML = `<p><strong>Email:</strong> ${session.user.email}</p>`
+      }
+    }
+  })
+
+  // Cerrar sesión
+  document.getElementById('logoutBtn')?.addEventListener('click', async () => {
+    await supabase.auth.signOut()
+    window.location.href = '/login'
+  })
+</script>
+
+<style>
+  .dashboard-container {
+    min-height: calc(100vh - 100px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .welcome-card {
+    max-width: 600px;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 50px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  }
+
+  .welcome-card h1 {
+    color: #008000;
+    margin-bottom: 20px;
+    font-size: 32px;
+  }
+
+  .welcome-card p {
+    color: #666;
+    font-size: 16px;
+    margin-bottom: 20px;
+  }
+
+  .user-info {
+    background: #f0f0f0;
+    padding: 20px;
+    border-radius: 10px;
+    margin: 30px 0;
+  }
+
+  .user-info p {
+    margin: 10px 0;
+    color: #333;
+  }
+
+  .btn-logout {
+    padding: 14px 40px;
+    background: #dc2626;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 16px;
+    transition: all 0.3s ease;
+  }
+
+  .btn-logout:hover {
+    background: #b91c1c;
+    transform: translateY(-2px);
+  }
+</style>

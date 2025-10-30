@@ -1,0 +1,256 @@
+/* Elimina cualquier espacio lateral */
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* HERO ocupa toda la pantalla */
+.hero {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  background-image: url("/Fondo.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  margin: 0;
+  padding: 0;
+}
+
+/* Desvanecido al final del hero */
+.hero::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 200px;
+  background: linear-gradient(to bottom, 
+    rgba(255, 255, 255, 0) 0%, 
+    #008000 70%,
+    #008000 100%
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Overlay eliminado - imagen sin oscurecer */
+.overlay {
+  display: none;
+}
+
+/* TRANSICIÓN SVG */
+.svg-transition {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  position: relative;
+  margin-top: -2px;
+}
+
+/* Navbar - ahora FIXED para que sea flotante */
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  background-color: transparent;
+  color: #008000;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  z-index: 100;
+  box-sizing: border-box;
+  transition: all 0.3s ease;
+}
+
+/* Navbar con fondo cuando haces scroll */
+.navbar.scrolled {
+  background-color: transparent;
+}
+
+.logo {
+  font-size: 1.2rem;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.nav-links {
+  list-style: none;
+  display: flex;
+  gap: 1.5rem;
+  margin: 0;
+  padding: 0;
+  white-space: nowrap;
+  align-items: center;
+}
+
+.nav-links a {
+  color: #008000;
+  text-decoration: none;
+  font-weight: 500;
+  padding: 0.5rem 1.2rem;
+  border-radius: 5px;
+  transition: all 0.3s ease;
+  background-color: white;
+}
+
+.nav-links a:hover {
+  background-color: #008000;
+  color: white;
+}
+
+/* Botones con fondo negro cuando hay scroll */
+.navbar.scrolled .nav-links a {
+  background-color: #008000;
+  color: white;
+}
+
+.navbar.scrolled .nav-links a:hover {
+  background-color: #008000;
+  color: white;
+}
+
+/* Contenido */
+/* Contenido */
+.content {
+  padding: 3rem 1rem;
+  text-align: center;
+  background: linear-gradient(180deg, #ffffff 0%, #d1fae5 50%, #ffffff 100%);
+}
+
+h1 {
+  font-size: 2.5rem;
+  color: #1e293b;
+  margin-bottom: 1rem;
+  font-weight: bold;
+}
+
+.subtitle {
+  font-size: 1.5rem;
+  color: #008000;
+  margin-bottom: 4rem;
+}
+
+/* CONTAINERS DE INFORMACIÓN */
+.info-containers {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.info-card {
+  flex: 1;
+  max-width: 400px;
+  background: white;
+  border-radius: 15px;
+  padding: 2.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  transition: all 0.5s ease;
+  opacity: 0;
+  transform: translateY(50px);
+  border: 2px solid transparent;
+}
+
+.info-card-large {
+  max-width: 100%;
+}
+
+/* Animación cuando se hace visible */
+.info-card.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Retraso para segunda tarjeta */
+.info-card:nth-child(2).visible {
+  transition-delay: 0.2s;
+}
+
+.info-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 8px 30px rgba(0, 128, 0, 0.2);
+  border-color: #008000;
+}
+
+.card-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  animation: bounce 2s infinite;
+}
+
+.info-card h3 {
+  font-size: 1.5rem;
+  color: #008000;
+  margin-bottom: 1rem;
+  font-weight: bold;
+}
+
+.info-card p {
+  font-size: 1rem;
+  color: black;
+  line-height: 1.6;
+}
+
+/* Animación de rebote para iconos */
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+footer {
+  margin-top: 4rem;
+  background-color: #1e293b;
+  color: white;
+  text-align: center;
+  padding: 1rem;
+}
+
+/* Responsive para pantallas pequeñas */
+@media (max-width: 768px) {
+  .navbar {
+    padding: 1rem;
+  }
+  
+  .nav-links {
+    gap: 1rem;
+    font-size: 0.9rem;
+  }
+  
+  .nav-links a {
+    padding: 0.4rem 0.8rem;
+  }
+  
+  .hero::after {
+    height: 150px;
+  }
+
+  .info-containers {
+    flex-direction: column;
+    padding: 1rem;
+  }
+
+  .info-card {
+    max-width: 100%;
+  }
+
+  h1 {
+    font-size: 2rem;
+  }
+
+  .content {
+    padding: 2rem 1rem;
+  }
+}
