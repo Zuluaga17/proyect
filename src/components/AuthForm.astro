@@ -79,222 +79,158 @@ const isLogin = mode === 'login';
 </div>
 
 <script>
-  import { supabase } from '../lib/supabaseClient'
+import { supabase } from '../lib/supabaseClient'
+import { api } from '../services/api.js';
 
-  const isLogin = document.querySelector('.auth-header h1')?.textContent === 'Iniciar Sesión'
-  const email = document.getElementById('email') as HTMLInputElement
-  const password = document.getElementById('password') as HTMLInputElement
-  const role = document.getElementById('role') as HTMLSelectElement
-  const submitBtn = document.getElementById('submitBtn') as HTMLButtonElement
-  const messageDiv = document.getElementById('message') as HTMLDivElement
-  
-  const phone = document.getElementById('phone') as HTMLInputElement
-  const confirmPassword = document.getElementById('confirmPassword') as HTMLInputElement
+const isLogin = document.querySelector('.auth-header h1')?.textContent === 'Iniciar Sesión'
+const email = document.getElementById('email') as HTMLInputElement
+const password = document.getElementById('password') as HTMLInputElement
+const role = document.getElementById('role') as HTMLSelectElement
+const submitBtn = document.getElementById('submitBtn') as HTMLButtonElement
+const messageDiv = document.getElementById('message') as HTMLDivElement
 
-  function showMessage(text: string, type: 'error' | 'success') {
-    messageDiv.textContent = text
-    messageDiv.className = `message ${type}`
-    messageDiv.style.display = 'block'
-    setTimeout(() => messageDiv.style.display = 'none', 5000)
+const phone = document.getElementById('phone') as HTMLInputElement
+const confirmPassword = document.getElementById('confirmPassword') as HTMLInputElement
+
+function showMessage(text: string, type: 'error' | 'success') {
+  messageDiv.textContent = text
+  messageDiv.className = `message ${type}`
+  messageDiv.style.display = 'block'
+  setTimeout(() => messageDiv.style.display = 'none', 5000)
+}
+
+function setLoading(loading: boolean) {
+  submitBtn.disabled = loading
+  submitBtn.textContent = loading ? 'Cargando...' : (isLogin ? 'Iniciar Sesión' : 'Registrarse')
+}
+
+function getRedirectUrl(userRole: string): string {
+  if (userRole === 'arrendatario') {
+    return '/dashboard-arrendatario'
+  } else if (userRole === 'propietario') {
+    return '/dashboard-propietario'
+  }
+  return '/dashboard'
+}
+
+submitBtn.addEventListener('click', async () => {
+  const emailValue = email.value.trim()
+  const passwordValue = password.value
+  const roleValue = role.value
+
+  if (!emailValue || !passwordValue || !roleValue) {
+    showMessage('Completa todos los campos', 'error')
+    return
   }
 
-  function setLoading(loading: boolean) {
-    submitBtn.disabled = loading
-    submitBtn.textContent = loading ? 'Cargando...' : (isLogin ? 'Iniciar Sesión' : 'Registrarse')
-  }
+  // Validaciones adicionales para registro
+  if (!isLogin) {
+    const phoneValue = phone?.value.trim()
+    const confirmPasswordValue = confirmPassword?.value
 
-  function getRedirectUrl(userRole: string): string {
-    if (userRole === 'arrendatario') {
-      return '/dashboard-arrendatario'
-    } else if (userRole === 'propietario') {
-      return '/dashboard-propietario'
-    }
-    return '/dashboard'
-  }
-
-  submitBtn.addEventListener('click', async () => {
-    const emailValue = email.value.trim()
-    const passwordValue = password.value
-    const roleValue = role.value
-
-    if (!emailValue || !passwordValue || !roleValue) {
+    if (!phoneValue || !confirmPasswordValue) {
       showMessage('Completa todos los campos', 'error')
       return
     }
 
-    // Validaciones adicionales para registro
-    if (!isLogin) {
-      const phoneValue = phone?.value.trim()
-      const confirmPasswordValue = confirmPassword?.value
-
-      if (!phoneValue || !confirmPasswordValue) {
-        showMessage('Completa todos los campos', 'error')
-        return
-      }
-
-      if (passwordValue !== confirmPasswordValue) {
-        showMessage('Las contraseñas no coinciden', 'error')
-        return
-      }
-
-      if (passwordValue.length < 6) {
-        showMessage('La contraseña debe tener al menos 6 caracteres', 'error')
-        return
-      }
-    }
-
-    setLoading(true)
-
-    try {
-      if (isLogin) {
-        // Iniciar sesión
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: emailValue,
-          password: passwordValue
-        })
-        
-        if (error) throw error
-        
-        // Obtener el rol registrado del usuario
-        let registeredRole = null
-        
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', data.user.id)
-          .single()
-        
-        if (profile?.role) {
-          registeredRole = profile.role
-        } else {
-          registeredRole = data.user?.user_metadata?.role
-        }
-        
-        // Validar que el rol seleccionado coincida con el rol registrado
-        if (registeredRole && registeredRole !== roleValue) {
-          // Cerrar sesión si el rol no coincide
-          await supabase.auth.signOut()
-          showMessage(`Este usuario está registrado como ${registeredRole}. Por favor, selecciona el rol correcto.`, 'error')
-          setLoading(false)
-          return
-        }
-        
-        showMessage('¡Bienvenido!', 'success')
-        setTimeout(() => {
-          window.location.href = getRedirectUrl(registeredRole || roleValue)
-        }, 1500)
-      } else {
-        // Registrarse
-        const { data, error } = await supabase.auth.signUp({
-          email: emailValue,
-          password: passwordValue,
-          options: {
-            data: {
-              phone: phone.value.trim(),
-              role: roleValue
-            }
-          }
-        })
-        
-        if (error) throw error
-        
-        // Insertar en la tabla profiles (el trigger lo hace automáticamente)
-        // Pero podemos asegurarnos con una inserción manual si es necesario
-        if (data.user) {
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .insert({
-              id: data.user.id,
-              email: emailValue,
-              phone: phone.value.trim(),
-              role: roleValue
-            })
-          
-          if (profileError && !profileError.message.includes('duplicate key')) {
-            console.error('Error al crear perfil:', profileError)
-          }
-        }
-        
-        showMessage('¡Registro exitoso! Revisa tu correo.', 'success')
-        
-        // Redirigir después de confirmar el email
-        setTimeout(() => {
-          window.location.href = getRedirectUrl(roleValue)
-        }, 2000)
-      }
-    } catch (error: any) {
-      showMessage(error.message, 'error')
-    } finally {
-      setLoading(false)
-    }
-  })
-
-  document.getElementById('googleBtn')?.addEventListener('click', async () => {
-    const roleValue = role.value
-    
-    if (!roleValue) {
-      showMessage('Selecciona un rol antes de continuar', 'error')
+    if (passwordValue !== confirmPasswordValue) {
+      showMessage('Las contraseñas no coinciden', 'error')
       return
     }
-    
-    // Guardar el rol en localStorage para usarlo después del OAuth
-    localStorage.setItem('pendingRole', roleValue)
-    
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { 
-        redirectTo: `${window.location.origin}/auth/callback`
-      }
-    })
-    if (error) showMessage(error.message, 'error')
-  })
 
-  password.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter' && isLogin) submitBtn.click()
-  })
-
-  confirmPassword?.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter' && !isLogin) submitBtn.click()
-  })
-
-  // Manejar "Olvidé mi contraseña"
-  document.getElementById('forgotPasswordLink')?.addEventListener('click', async (e) => {
-    e.preventDefault()
-    
-    const emailValue = email.value.trim()
-    
-    if (!emailValue) {
-      showMessage('Por favor, ingresa tu correo electrónico', 'error')
-      email.focus()
+    if (passwordValue.length < 6) {
+      showMessage('La contraseña debe tener al menos 6 caracteres', 'error')
       return
     }
-    
-    // Validar formato de email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(emailValue)) {
-      showMessage('Por favor, ingresa un correo electrónico válido', 'error')
-      return
-    }
-    
-    setLoading(true)
-    
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(emailValue, {
-        redirectTo: `${window.location.origin}/reset-password`
+  }
+
+  setLoading(true)
+
+  try {
+    if (isLogin) {
+      // Iniciar sesión
+      const data = await api.login({
+        email: emailValue,
+        password: passwordValue,
+        role: roleValue
       })
+
+      showMessage('¡Bienvenido!', 'success')
       
-      if (error) throw error
+      setTimeout(() => {
+        window.location.href = getRedirectUrl(data.user.role)
+      }, 1500)
       
-      showMessage('Se ha enviado un enlace de recuperación a tu correo', 'success')
-    } catch (error: any) {
-      showMessage(error.message, 'error')
-    } finally {
-      setLoading(false)
+    } else {
+      // Registrarse
+      await api.register({
+        email: emailValue,
+        password: passwordValue,
+        phone: phone.value.trim(),
+        role: roleValue
+      })
+
+      showMessage('¡Registro exitoso! Revisa tu correo.', 'success')
+
+      setTimeout(() => {
+        window.location.href = '/login'
+      }, 2000)
     }
-  })
+  } catch (error: any) {
+    showMessage(error.message || 'Error en la operación', 'error')
+  } finally {
+    setLoading(false)
+  }
+})
+
+// Google Sign In - Por ahora comentado, se puede implementar después
+document.getElementById('googleBtn')?.addEventListener('click', async () => {
+  showMessage('Google Sign-In - Próximamente', 'error')
+  // Esto requeriría OAuth flow con el backend
+})
+
+password.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter' && isLogin) submitBtn.click()
+})
+
+confirmPassword?.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter' && !isLogin) submitBtn.click()
+})
+
+// Manejar "Olvidé mi contraseña"
+document.getElementById('forgotPasswordLink')?.addEventListener('click', async (e) => {
+  e.preventDefault()
+
+  const emailValue = email.value.trim()
+
+  if (!emailValue) {
+    showMessage('Por favor, ingresa tu correo electrónico', 'error')
+    email.focus()
+    return
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(emailValue)) {
+    showMessage('Por favor, ingresa un correo electrónico válido', 'error')
+    return
+  }
+
+  setLoading(true)
+
+  try {
+    await api.resetPassword(emailValue)
+    showMessage('Se ha enviado un enlace de recuperación a tu correo', 'success')
+  } catch (error: any) {
+    showMessage(error.message || 'Error al enviar correo', 'error')
+  } finally {
+    setLoading(false)
+  }
+})
+  
 </script>
 
 <style>
+  /* (Mantiene el mismo CSS que ya tenías) */
   .auth-container {
     max-width: 450px;
     width: 100%;
@@ -478,16 +414,16 @@ const isLogin = mode === 'login';
   .toggle-form a:hover {
     text-decoration: underline;
   }
-  body{
-     position: relative;
-  width: 100vw;
-  height: 100vh;
-  background-image: url("/Fondo.png");
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  margin: 0;
-  padding: 0;
-  }
 
+  body {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    background-image: url("/Fondo.png");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    margin: 0;
+    padding: 0;
+  }
 </style>
