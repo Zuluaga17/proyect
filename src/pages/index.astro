@@ -1,12 +1,16 @@
 ---
 import Layout from "../layouts/Layout.astro";
 import Navbar from "../components/Navbar.astro";
+import ProfileCircle from "../components/ProfileCircle.astro";
 ---
 
 <Layout title="J&L Arrendamientos">
   <Fragment slot="navbar">
     <Navbar />
   </Fragment>
+
+  <!-- CÍRCULO DE PERFIL -->
+  <ProfileCircle userName="Usuario" userImage="/Fondo.png" />
 
   <section class="hero">
     <div class="overlay"></div>

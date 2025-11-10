@@ -2,11 +2,16 @@
 import Layout from "../layouts/Layout.astro";
 import Navbar from "../components/Navbar.astro";
 import AuthForm from "../components/AuthForm.astro";
+import ProfileCircle from "../components/ProfileCircle.astro";
 ---
 
 <Layout title="Registrarse - J&L Arrendamientos">
   <Fragment slot="navbar">
     <Navbar />
+      <!-- CÍRCULO DE PERFIL -->
+  <ProfileCircle userName="Usuario" userImage="/Fondo.png" />
+
   </Fragment>
   <AuthForm mode="register" />
 </Layout>
+

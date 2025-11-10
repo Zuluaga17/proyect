@@ -17,10 +17,38 @@ const isLogin = mode === 'login';
       <input type="email" id="email" placeholder="tu@email.com" required>
     </div>
 
+    {!isLogin && (
+      <div class="form-group">
+        <label>Teléfono</label>
+        <input type="tel" id="phone" placeholder="+57 301-404-5224" required>
+      </div>
+    )}
+
+    <div class="form-group">
+      <label>Rol</label>
+      <select id="role" required>
+        <option value="">Selecciona un rol</option>
+        <option value="arrendatario">Arrendatario</option>
+        <option value="propietario">Propietario</option>
+      </select>
+    </div>
+
     <div class="form-group">
       <label>Contraseña</label>
       <input type="password" id="password" placeholder="••••••••" required>
+      {isLogin && (
+        <div class="forgot-password">
+          <a href="#" id="forgotPasswordLink">¿Olvidaste tu contraseña?</a>
+        </div>
+      )}
     </div>
+
+    {!isLogin && (
+      <div class="form-group">
+        <label>Confirmar Contraseña</label>
+        <input type="password" id="confirmPassword" placeholder="••••••••" required>
+      </div>
+    )}
 
     <button id="submitBtn" class="btn btn-primary">
       {isLogin ? 'Iniciar Sesión' : 'Registrarse'}
@@ -41,8 +69,6 @@ const isLogin = mode === 'login';
       </svg>
       Google
     </button>
-
-   
   </div>
 
   <div class="toggle-form">
@@ -58,8 +84,12 @@ const isLogin = mode === 'login';
   const isLogin = document.querySelector('.auth-header h1')?.textContent === 'Iniciar Sesión'
   const email = document.getElementById('email') as HTMLInputElement
   const password = document.getElementById('password') as HTMLInputElement
+  const role = document.getElementById('role') as HTMLSelectElement
   const submitBtn = document.getElementById('submitBtn') as HTMLButtonElement
   const messageDiv = document.getElementById('message') as HTMLDivElement
+  
+  const phone = document.getElementById('phone') as HTMLInputElement
+  const confirmPassword = document.getElementById('confirmPassword') as HTMLInputElement
 
   function showMessage(text: string, type: 'error' | 'success') {
     messageDiv.textContent = text
@@ -73,33 +103,124 @@ const isLogin = mode === 'login';
     submitBtn.textContent = loading ? 'Cargando...' : (isLogin ? 'Iniciar Sesión' : 'Registrarse')
   }
 
+  function getRedirectUrl(userRole: string): string {
+    if (userRole === 'arrendatario') {
+      return '/dashboard-arrendatario'
+    } else if (userRole === 'propietario') {
+      return '/dashboard-propietario'
+    }
+    return '/dashboard'
+  }
+
   submitBtn.addEventListener('click', async () => {
     const emailValue = email.value.trim()
     const passwordValue = password.value
+    const roleValue = role.value
 
-    if (!emailValue || !passwordValue) {
+    if (!emailValue || !passwordValue || !roleValue) {
       showMessage('Completa todos los campos', 'error')
       return
+    }
+
+    // Validaciones adicionales para registro
+    if (!isLogin) {
+      const phoneValue = phone?.value.trim()
+      const confirmPasswordValue = confirmPassword?.value
+
+      if (!phoneValue || !confirmPasswordValue) {
+        showMessage('Completa todos los campos', 'error')
+        return
+      }
+
+      if (passwordValue !== confirmPasswordValue) {
+        showMessage('Las contraseñas no coinciden', 'error')
+        return
+      }
+
+      if (passwordValue.length < 6) {
+        showMessage('La contraseña debe tener al menos 6 caracteres', 'error')
+        return
+      }
     }
 
     setLoading(true)
 
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
+        // Iniciar sesión
+        const { data, error } = await supabase.auth.signInWithPassword({
           email: emailValue,
           password: passwordValue
         })
+        
         if (error) throw error
+        
+        // Obtener el rol registrado del usuario
+        let registeredRole = null
+        
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', data.user.id)
+          .single()
+        
+        if (profile?.role) {
+          registeredRole = profile.role
+        } else {
+          registeredRole = data.user?.user_metadata?.role
+        }
+        
+        // Validar que el rol seleccionado coincida con el rol registrado
+        if (registeredRole && registeredRole !== roleValue) {
+          // Cerrar sesión si el rol no coincide
+          await supabase.auth.signOut()
+          showMessage(`Este usuario está registrado como ${registeredRole}. Por favor, selecciona el rol correcto.`, 'error')
+          setLoading(false)
+          return
+        }
+        
         showMessage('¡Bienvenido!', 'success')
-        setTimeout(() => window.location.href = '/dashboard', 1500)
+        setTimeout(() => {
+          window.location.href = getRedirectUrl(registeredRole || roleValue)
+        }, 1500)
       } else {
-        const { error } = await supabase.auth.signUp({
+        // Registrarse
+        const { data, error } = await supabase.auth.signUp({
           email: emailValue,
-          password: passwordValue
+          password: passwordValue,
+          options: {
+            data: {
+              phone: phone.value.trim(),
+              role: roleValue
+            }
+          }
         })
+        
         if (error) throw error
+        
+        // Insertar en la tabla profiles (el trigger lo hace automáticamente)
+        // Pero podemos asegurarnos con una inserción manual si es necesario
+        if (data.user) {
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .insert({
+              id: data.user.id,
+              email: emailValue,
+              phone: phone.value.trim(),
+              role: roleValue
+            })
+          
+          if (profileError && !profileError.message.includes('duplicate key')) {
+            console.error('Error al crear perfil:', profileError)
+          }
+        }
+        
         showMessage('¡Registro exitoso! Revisa tu correo.', 'success')
+        
+        // Redirigir después de confirmar el email
+        setTimeout(() => {
+          window.location.href = getRedirectUrl(roleValue)
+        }, 2000)
       }
     } catch (error: any) {
       showMessage(error.message, 'error')
@@ -109,23 +230,67 @@ const isLogin = mode === 'login';
   })
 
   document.getElementById('googleBtn')?.addEventListener('click', async () => {
+    const roleValue = role.value
+    
+    if (!roleValue) {
+      showMessage('Selecciona un rol antes de continuar', 'error')
+      return
+    }
+    
+    // Guardar el rol en localStorage para usarlo después del OAuth
+    localStorage.setItem('pendingRole', roleValue)
+    
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/dashboard` }
-    })
-    if (error) showMessage(error.message, 'error')
-  })
-
-  document.getElementById('facebookBtn')?.addEventListener('click', async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'facebook',
-      options: { redirectTo: `${window.location.origin}/dashboard` }
+      options: { 
+        redirectTo: `${window.location.origin}/auth/callback`
+      }
     })
     if (error) showMessage(error.message, 'error')
   })
 
   password.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') submitBtn.click()
+    if (e.key === 'Enter' && isLogin) submitBtn.click()
+  })
+
+  confirmPassword?.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter' && !isLogin) submitBtn.click()
+  })
+
+  // Manejar "Olvidé mi contraseña"
+  document.getElementById('forgotPasswordLink')?.addEventListener('click', async (e) => {
+    e.preventDefault()
+    
+    const emailValue = email.value.trim()
+    
+    if (!emailValue) {
+      showMessage('Por favor, ingresa tu correo electrónico', 'error')
+      email.focus()
+      return
+    }
+    
+    // Validar formato de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(emailValue)) {
+      showMessage('Por favor, ingresa un correo electrónico válido', 'error')
+      return
+    }
+    
+    setLoading(true)
+    
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(emailValue, {
+        redirectTo: `${window.location.origin}/reset-password`
+      })
+      
+      if (error) throw error
+      
+      showMessage('Se ha enviado un enlace de recuperación a tu correo', 'success')
+    } catch (error: any) {
+      showMessage(error.message, 'error')
+    } finally {
+      setLoading(false)
+    }
   })
 </script>
 
@@ -186,19 +351,42 @@ const isLogin = mode === 'login';
     font-size: 14px;
   }
 
-  .form-group input {
+  .form-group input,
+  .form-group select {
     width: 100%;
     padding: 12px 16px;
     border: 2px solid #e0e0e0;
     border-radius: 10px;
     font-size: 14px;
     transition: all 0.3s ease;
+    background: white;
   }
 
-  .form-group input:focus {
+  .form-group input:focus,
+  .form-group select:focus {
     outline: none;
     border-color: #008000;
     box-shadow: 0 0 0 3px rgba(0, 128, 0, 0.1);
+  }
+
+  .form-group select {
+    cursor: pointer;
+  }
+
+  .forgot-password {
+    margin-top: 8px;
+    text-align: right;
+  }
+
+  .forgot-password a {
+    color: #008000;
+    font-size: 13px;
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  .forgot-password a:hover {
+    text-decoration: underline;
   }
 
   .btn {
@@ -225,6 +413,7 @@ const isLogin = mode === 'login';
   .btn-primary:disabled {
     background: #ccc;
     cursor: not-allowed;
+    transform: none;
   }
 
   .divider {
@@ -248,10 +437,9 @@ const isLogin = mode === 'login';
   }
 
   .social-buttons {
-  display: flex;
-  justify-content: center;
-}
-
+    display: flex;
+    justify-content: center;
+  }
 
   .btn-social {
     display: flex;
@@ -263,6 +451,8 @@ const isLogin = mode === 'login';
     background: white;
     cursor: pointer;
     transition: all 0.3s ease;
+    font-size: 14px;
+    font-weight: 500;
   }
 
   .btn-social:hover {
@@ -288,4 +478,16 @@ const isLogin = mode === 'login';
   .toggle-form a:hover {
     text-decoration: underline;
   }
+  body{
+     position: relative;
+  width: 100vw;
+  height: 100vh;
+  background-image: url("/Fondo.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  margin: 0;
+  padding: 0;
+  }
+
 </style>

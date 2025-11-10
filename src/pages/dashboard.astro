@@ -1,5 +1,6 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import ProfileCircle from "../components/ProfileCircle.astro";
 ---
 
 <Layout title="Dashboard - J&L Arrendamientos">
@@ -14,6 +15,9 @@ import Layout from "../layouts/Layout.astro";
     </div>
   </div>
 </Layout>
+  <!-- CÍRCULO DE PERFIL -->
+  <ProfileCircle userName="Usuario" userImage="/Fondo.png" />
+
 
 <script>
   import { supabase } from '../lib/supabaseClient'
